@@ -307,6 +307,14 @@ struct ParameterInfo {
 	}
 };
 
+struct FramePointIntInfo {
+	Sint16 x;
+	Sint16 y;
+	Sint16 z;
+	Uint8 cameras;
+	Uint8 residual;
+};
+
 struct FramePointInfo {
 	float x;
 	float y;

@@ -23,10 +23,11 @@ struct C3DFile {
 	std::vector<GroupInfo> group_infos;
 	std::vector< std::vector<FramePointInfo> > point_data;
 
-  std::vector<std::string> point_label;
-  std::map<std::string, Sint16> label_point_map;
-  std::vector<FloatMarkerData> float_point_data;
+	std::vector<std::string> point_label;
+	std::map<std::string, Sint16> label_point_map;
+	std::vector<FloatMarkerData> float_point_data;
 	std::map<int, int> group_id_to_index_map;
+	bool uses_integer_data;
 
 	void readParameterSection(std::ifstream &data_stream);
 	GroupInfo readGroupInfo (std::ifstream &data_stream);

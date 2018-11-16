@@ -154,7 +154,7 @@ void C3DFile::readParameterSection (ifstream &datastream) {
 
 		if (peek_buffer[1] < 0) {
 			GroupInfo group_info = readGroupInfo (datastream);
-			// print_group_info(group_info);
+			//print_group_info(group_info);
 		
 			group_infos.push_back(group_info);
 
@@ -169,7 +169,7 @@ void C3DFile::readParameterSection (ifstream &datastream) {
 			group_count ++;
 		} else {
 			ParameterInfo param_info = readParameterInfo(datastream);
-			// print_parameter_info(param_info);
+			//print_parameter_info(param_info);
 
 			param_infos.push_back(param_info);
 			param_count ++;
@@ -287,14 +287,18 @@ ParameterInfo C3DFile::readParameterInfo (ifstream &datastream) {
 void C3DFile::readPointSection(ifstream &datastream) {
 	float point_scale = getParamFloat("POINT:SCALE");
 
-	// we multiply point_scale by -1. as it is negative
+	//Check point scale value to figure out if the data is stored in integer or floating point format
+	//if point_scale is negative the floating point format is used, other wise the integer format
 	if (point_scale < 0.) {
+		uses_integer_data = false;
 		point_scale *= -1.;
+	} else {
+		uses_integer_data = true;
 	}
 
 	// compute the start of the point data
-	int data_start;
-	data_start = 512 * (getParamSint16 ("POINT:DATA_START") - 1);
+	int data_start = getParamSint16 ("POINT:DATA_START");
+	data_start = 512 * ( data_start - 1);
 		
 	assert (data_start > 512);
 
@@ -320,8 +324,8 @@ void C3DFile::readPointSection(ifstream &datastream) {
 	// Populate point_data
 	int i;
 	for (i = 0; i < point_count; i++) {
-    FloatMarkerData marker_data;
-    float_point_data.push_back(marker_data);
+		FloatMarkerData marker_data;
+		float_point_data.push_back(marker_data);
 		std::vector<FramePointInfo> frame_data;
 		point_data.push_back(frame_data);
 	}
@@ -331,17 +335,40 @@ void C3DFile::readPointSection(ifstream &datastream) {
 	for (frame_index = 0; frame_index < frame_count; frame_index ++) {
 		// Read the frames
 		for (i = 0; i < point_count; i++) {
-			FramePointInfo point_info;
-			datastream.read(reinterpret_cast<char *>(&point_info), sizeof(FramePointInfo));
+			//read data from float data section
+			if (!uses_integer_data) {
+				FramePointInfo point_info;
+				datastream.read(reinterpret_cast<char *>(&point_info), sizeof(FramePointInfo));
 
-      float_point_data[i].x.push_back(point_info.x);
-      float_point_data[i].y.push_back(point_info.y);
-      float_point_data[i].z.push_back(point_info.z);
+				float_point_data[i].x.push_back(point_info.x);
+				float_point_data[i].y.push_back(point_info.y);
+				float_point_data[i].z.push_back(point_info.z);
 
-      float_point_data[i].cameras.push_back(point_info.cameras);
-      float_point_data[i].residual.push_back(point_info.residual);
+			    float_point_data[i].cameras.push_back(point_info.cameras);
+			    float_point_data[i].residual.push_back(point_info.residual);
 
-			point_data.at(i).push_back(point_info);
+				point_data.at(i).push_back(point_info);
+			//read data from int data section
+			} else {
+				FramePointIntInfo int_point_info;
+				datastream.read(reinterpret_cast<char *>(&int_point_info), sizeof(FramePointIntInfo));
+
+				FramePointInfo point_info;
+				point_info.x = point_scale * int_point_info.x;
+				point_info.y = point_scale * int_point_info.y;
+				point_info.z = point_scale * int_point_info.z;
+				point_info.cameras = int_point_info.cameras;
+				point_info.residual = int_point_info.residual;
+
+				float_point_data[i].x.push_back(point_info.x);
+				float_point_data[i].y.push_back(point_info.y);
+				float_point_data[i].z.push_back(point_info.z);
+
+			    float_point_data[i].cameras.push_back(point_info.cameras);
+			    float_point_data[i].residual.push_back(point_info.residual);
+
+				point_data.at(i).push_back(point_info);
+			}
 		}
 
 		datastream.seekg((header.analog_channels) * sizeof(float), ios::cur);

@@ -10,7 +10,7 @@ SET ( TESTS_SRCS
 	c3dfiletests.cc	
 	)
 
-FIND_PACKAGE (UnitTest++ REQUIRED)
+FIND_PACKAGE (UnitTest++)
 
 INCLUDE_DIRECTORIES ( ../src/ )
 
